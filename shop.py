@@ -168,6 +168,58 @@ body, .stApp {
     color: #c9b3ff !important;
 }
 
+/* Selectbox */
+.stSelectbox > div > div {
+    background: #13131f !important;
+    border: 1px solid rgba(123, 47, 247, 0.3) !important;
+    border-radius: 10px !important;
+    color: #f0f0f5 !important;
+    font-family: 'Inter', sans-serif !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.stSelectbox > div > div:hover {
+    border-color: rgba(0, 229, 255, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.08) !important;
+}
+
+.stSelectbox > div > div:focus-within {
+    border-color: #00e5ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1) !important;
+}
+
+.stSelectbox span, .stSelectbox svg {
+    color: #c9b3ff !important;
+    fill: #c9b3ff !important;
+}
+
+/* Dropdown list */
+[data-baseweb="popover"] ul {
+    background: #13131f !important;
+    border: 1px solid rgba(123, 47, 247, 0.3) !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+}
+
+[data-baseweb="popover"] li {
+    background: transparent !important;
+    color: #f0f0f5 !important;
+    border-radius: 8px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 14px !important;
+    transition: background 0.15s ease !important;
+}
+
+[data-baseweb="popover"] li:hover {
+    background: rgba(123, 47, 247, 0.2) !important;
+    color: #00e5ff !important;
+}
+
+[data-baseweb="popover"] li[aria-selected="true"] {
+    background: rgba(0, 229, 255, 0.1) !important;
+    color: #00e5ff !important;
+}
+
 /* Divider */
 hr {
     border-color: rgba(123, 47, 247, 0.2) !important;
@@ -242,9 +294,13 @@ with col1:
     st.write("✔ Nick/Nome a sua escolha")
 
     st.markdown('<p class="preco">R$ 3,00</p>', unsafe_allow_html=True)
-
+    nome = st.selectbox(
+            "Nome/Nick",
+            ["Amora", "Arthur"]
+        )
+    st.session_state.nome = nome
     if st.button("Comprar", key="c1"):
-        mensagem = "Olá, quero comprar a Conta Fake Simples"
+        mensagem = f"Olá, quero comprar a Conta Fake Simples com o nick: {st.session_state.nome}"
         mensagem_codificada = urllib.parse.quote(mensagem)
         link = f"https://wa.me/5533998256653?text={mensagem_codificada}"
         st.link_button("Ir para WhatsApp", link)
