@@ -1,289 +1,442 @@
 import streamlit as st
-import urllib.parse
+from datetime import datetime, date, timedelta
+import json
+import os
 
-st.set_page_config(page_title="Contas Fakes", layout="centered")
+st.set_page_config(page_title="Meus Cortes", layout="centered", page_icon="✂️")
 
-# ====== CSS SIMPLES ======
+# ====== CSS ======
 st.markdown("""
 <style>
 
-@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
 
-* {
-    font-family: 'Sora', sans-serif;
+*, body, .stApp {
+    background-color: #0f0f0f;
+    color: #f5f5f0;
 }
 
-body, .stApp {
-    background-color: #0a0a0f;
-    color: #f0f0f5;
+h1, h2, h3 {
+    font-family: 'Bebas Neue', sans-serif !important;
+    letter-spacing: 2px !important;
+    color: #f5f5f0 !important;
 }
 
-.titulo {
+p, span, div, label, .stWrite {
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+.topo {
     text-align: center;
-    font-size: 48px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #00e5ff, #7b2ff7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -1px;
-    margin-bottom: 4px;
+    padding: 20px 0 10px;
 }
 
-.subtitulo {
-    text-align: center;
-    font-size: 16px;
-    color: #888;
-    font-family: 'Inter', sans-serif;
+.topo-titulo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    line-height: 1;
+    color: #f5f5f0;
+    letter-spacing: 4px;
 }
 
-.badge {
-    display: inline-block;
-    background: linear-gradient(135deg, #7b2ff7, #00e5ff);
-    color: white;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 3px 12px;
-    border-radius: 50px;
-    letter-spacing: 1.5px;
+.topo-sub {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: #666;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    margin-bottom: 8px;
+    margin-top: 4px;
 }
 
-.card {
-    background: linear-gradient(160deg, #13131f, #1a1a2e);
-    border: 1px solid rgba(123, 47, 247, 0.25);
-    padding: 28px 24px;
+.semana-badge {
+    display: inline-block;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    padding: 6px 18px;
+    border-radius: 50px;
+    font-size: 12px;
+    color: #888;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 1px;
+    margin-top: 10px;
+}
+
+.total-card {
+    background: linear-gradient(135deg, #1c1c1c, #242424);
+    border: 1px solid #2e2e2e;
     border-radius: 16px;
-    text-align: center;
-    box-shadow: 0 4px 30px rgba(0, 229, 255, 0.05), 0 1px 0 rgba(255,255,255,0.04) inset;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    padding: 28px 32px;
+    margin: 16px 0;
     position: relative;
     overflow: hidden;
 }
 
-.card:hover {
-    border-color: rgba(0, 229, 255, 0.45);
-    box-shadow: 0 8px 40px rgba(0, 229, 255, 0.12);
-}
-
-.card::before {
+.total-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #7b2ff7, #00e5ff);
-    border-radius: 16px 16px 0 0;
+    height: 3px;
+    background: linear-gradient(90deg, #c8a96e, #f0d080, #c8a96e);
 }
 
-.preco {
-    font-size: 34px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #00e5ff, #7b2ff7);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 12px 0;
+.total-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.total-valor {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 56px;
+    color: #c8a96e;
+    letter-spacing: 2px;
     line-height: 1;
 }
 
-.feature-item {
-    font-size: 14px;
-    color: #aaa;
-    margin: 6px 0;
-    font-family: 'Inter', sans-serif;
+.total-qtd {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: #555;
+    margin-top: 8px;
 }
 
-/* Botões do Streamlit */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input {
+    background: #1a1a1a !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 10px !important;
+    color: #f5f5f0 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 15px !important;
+    padding: 10px 14px !important;
+    transition: border-color 0.2s ease !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+    border-color: #c8a96e !important;
+    box-shadow: 0 0 0 3px rgba(200, 169, 110, 0.1) !important;
+}
+
+.stTextInput label, .stNumberInput label {
+    color: #888 !important;
+    font-size: 12px !important;
+    letter-spacing: 1px !important;
+    text-transform: uppercase !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
 .stButton > button {
-    background: linear-gradient(135deg, #7b2ff7, #00e5ff) !important;
-    color: white !important;
+    background: #c8a96e !important;
+    color: #0f0f0f !important;
     border: none !important;
     border-radius: 10px !important;
-    font-family: 'Sora', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 14px !important;
-    letter-spacing: 0.5px !important;
+    font-family: 'Bebas Neue', sans-serif !important;
+    font-size: 18px !important;
+    letter-spacing: 2px !important;
     padding: 10px 28px !important;
     width: 100% !important;
-    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease !important;
-    box-shadow: 0 4px 20px rgba(123, 47, 247, 0.35) !important;
-    cursor: pointer !important;
+    transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease !important;
+    box-shadow: 0 4px 20px rgba(200, 169, 110, 0.2) !important;
 }
 
 .stButton > button:hover {
-    transform: translateY(-2px) scale(1.02) !important;
-    box-shadow: 0 8px 30px rgba(0, 229, 255, 0.4) !important;
+    transform: translateY(-2px) !important;
     filter: brightness(1.1) !important;
+    box-shadow: 0 8px 30px rgba(200, 169, 110, 0.35) !important;
 }
 
 .stButton > button:active {
-    transform: translateY(0px) scale(0.98) !important;
-    box-shadow: 0 2px 10px rgba(123, 47, 247, 0.3) !important;
+    transform: scale(0.97) !important;
     filter: brightness(0.95) !important;
 }
 
-/* Link buttons */
-.stLinkButton > a {
-    background: transparent !important;
-    color: #00e5ff !important;
-    border: 1px solid rgba(0, 229, 255, 0.4) !important;
-    border-radius: 10px !important;
-    font-family: 'Sora', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 14px !important;
-    padding: 10px 24px !important;
-    width: 100% !important;
-    transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease !important;
+.corte-item {
+    background: #1a1a1a;
+    border: 1px solid #252525;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin: 8px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'DM Sans', sans-serif;
 }
 
-.stLinkButton > a:hover {
-    background: rgba(0, 229, 255, 0.08) !important;
-    border-color: #00e5ff !important;
-    transform: translateY(-2px) !important;
-    color: white !important;
+.corte-nome {
+    font-size: 15px;
+    font-weight: 500;
+    color: #e0e0e0;
 }
 
-/* Input */
-.stTextInput > div > div > input {
-    background: #13131f !important;
-    border: 1px solid rgba(123, 47, 247, 0.3) !important;
-    border-radius: 10px !important;
-    color: #f0f0f5 !important;
-    font-family: 'Inter', sans-serif !important;
-    padding: 10px 16px !important;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+.corte-hora {
+    font-size: 11px;
+    color: #555;
+    margin-top: 3px;
 }
 
-.stTextInput > div > div > input:focus {
-    border-color: #00e5ff !important;
-    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1) !important;
+.corte-valor {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #c8a96e;
+    letter-spacing: 1px;
 }
 
-/* Info box */
-.stAlert {
-    background: rgba(123, 47, 247, 0.1) !important;
-    border: 1px solid rgba(123, 47, 247, 0.3) !important;
-    border-radius: 10px !important;
-    color: #c9b3ff !important;
+.corte-idx {
+    font-size: 11px;
+    color: #444;
+    margin-right: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 1px;
 }
 
-/* Divider */
+.vazio {
+    text-align: center;
+    color: #444;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 32px 0;
+    border: 1px dashed #2a2a2a;
+    border-radius: 12px;
+    margin: 8px 0;
+}
+
 hr {
-    border-color: rgba(123, 47, 247, 0.2) !important;
-    margin: 24px 0 !important;
+    border-color: #1e1e1e !important;
+    margin: 20px 0 !important;
 }
 
-/* Headings */
-h2, h3 {
-    color: #f0f0f5 !important;
+.stAlert {
+    background: #1a1a1a !important;
+    border: 1px solid #2a2a2a !important;
+    border-radius: 10px !important;
+    color: #888 !important;
 }
 
-p, .stWrite {
-    color: #bbb !important;
+.zerar > button {
+    background: transparent !important;
+    color: #555 !important;
+    border: 1px solid #2a2a2a !important;
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+    box-shadow: none !important;
+    font-family: 'DM Sans', sans-serif !important;
+    padding: 6px 20px !important;
+}
+
+.zerar > button:hover {
+    border-color: #e05555 !important;
+    color: #e05555 !important;
+    transform: none !important;
+    filter: none !important;
+    box-shadow: none !important;
+}
+
+.stTabs [data-baseweb="tab-list"] {
+    background: #1a1a1a !important;
+    border-radius: 10px !important;
+    padding: 4px !important;
+    gap: 4px !important;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: transparent !important;
+    border-radius: 8px !important;
+    color: #666 !important;
+    font-family: 'DM Sans', sans-serif !important;
+    font-size: 13px !important;
+    letter-spacing: 1px !important;
+}
+
+.stTabs [aria-selected="true"] {
+    background: #c8a96e !important;
+    color: #0f0f0f !important;
+    font-weight: 600 !important;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# ====== TITULO ======
+ARQUIVO = "cortes.json"
 
-st.markdown('<p class="titulo">CONTAS FAKES</p>', unsafe_allow_html=True)
+def carregar_dados():
+    if os.path.exists(ARQUIVO):
+        with open(ARQUIVO, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
 
-st.markdown(
-'<p class="subtitulo">Jacarezin das contas fakes - o mais conhecido do hotel</p>',
-unsafe_allow_html=True
-)
+def salvar_dados(cortes):
+    with open(ARQUIVO, "w", encoding="utf-8") as f:
+        json.dump(cortes, f, ensure_ascii=False, indent=2)
 
-st.divider()
+def fmt_valor(valor):
+    return f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
+# ====== CARREGAR NA SESSION STATE ======
+if "cortes" not in st.session_state:
+    st.session_state.cortes = carregar_dados()
 
-# ====== SOBRE ======
+# ====== SEMANA ATUAL ======
+hoje = date.today()
+inicio_semana = hoje - timedelta(days=hoje.weekday())
+fim_semana = inicio_semana + timedelta(days=6)
 
-st.markdown("### O que são contas fakes?")
+def e_da_semana_atual(corte):
+    try:
+        dia = datetime.strptime(corte["data_completa"], "%Y-%m-%d").date()
+        return inicio_semana <= dia <= fim_semana
+    except:
+        return False
 
-st.write(
-"""
-Contas fakes são contas recém-criadas usadas para:
+cortes_semana = [c for c in st.session_state.cortes if e_da_semana_atual(c)]
 
-• reserva  
-• depósitos  
-• cartel  
-"""
-)
+# ====== TOPO ======
+st.markdown("""
+<div class="topo">
+    <div class="topo-titulo">✂ MEUS CORTES</div>
+    <div class="topo-sub">Controle semanal de atendimentos</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.write(
-"""
-### O que vem nas contas?
+st.markdown(f"""
+<div style="text-align:center">
+    <span class="semana-badge">📅 Semana: {inicio_semana.strftime('%d/%m')} — {fim_semana.strftime('%d/%m/%Y')}</span>
+</div>
+<br>
+""", unsafe_allow_html=True)
 
-• Sistema de trocas  
-• Nick / Nome à sua escolha
-"""
-)
+# ====== TOTAL DA SEMANA ======
+total = sum(c["valor"] for c in cortes_semana)
+qtd = len(cortes_semana)
 
-st.info("💰 Contas a partir de **R$3,00**")
-
-st.divider()
-
-
-# ====== PRODUTOS ======
-
-st.markdown("## Comprar")
-
-col1, col2 = st.columns(2)
-
-
-with col1:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    st.subheader("Conta Fake Simples")
-    st.write("✔ Trocas")
-    st.write("✔ Nick/Nome a sua escolha")
-
-    st.markdown('<p class="preco">R$ 3,00</p>', unsafe_allow_html=True)
-
-    if st.button("Comprar", key="c1"):
-        mensagem = "Olá, quero comprar a Conta Fake Simples"
-        mensagem_codificada = urllib.parse.quote(mensagem)
-        link = f"https://wa.me/5533998256653?text={mensagem_codificada}"
-        st.link_button("Ir para WhatsApp", link)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-
-with col2:
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-
-    st.subheader("Conta Fake Encomendada")
-    st.write("✔ Trocas")
-    st.write("✔ Nick/Nome aleatório")
-
-    st.markdown('<p class="preco">R$ 2,50</p>', unsafe_allow_html=True)
-
-    st.info("Disponível em quantidade")
-
-    if st.button("Comprar", key="c2"):
-        mensagem = "Olá, quero comprar a Conta Fake Encomendada"
-        mensagem_codificada = urllib.parse.quote(mensagem)
-        link = f"https://wa.me/5533998256653?text={mensagem_codificada}"
-        st.link_button("Ir para WhatsApp", link)
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
+st.markdown(f"""
+<div class="total-card">
+    <div class="total-label">💰 Total da semana</div>
+    <div class="total-valor">R$ {fmt_valor(total)}</div>
+    <div class="total-qtd">{qtd} corte{"s" if qtd != 1 else ""} registrado{"s" if qtd != 1 else ""} essa semana</div>
+</div>
+""", unsafe_allow_html=True)
 
 st.divider()
 
+# ====== ABAS ======
+aba1, aba2 = st.tabs(["✂️  Semana Atual", "📋  Histórico Completo"])
 
-# ====== DUVIDAS ======
+# ====== ABA 1: SEMANA ATUAL ======
+with aba1:
+    st.markdown("### ADICIONAR CORTE")
 
-st.markdown("## Dúvidas")
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        nome = st.text_input("Nome do cliente", placeholder="Ex: João Silva")
+    with col2:
+        valor = st.number_input("Valor (R$)", min_value=0.0, step=0.50, format="%.2f")
 
-duvida = st.text_input("Digite sua dúvida")
+    if st.button("＋  REGISTRAR CORTE", key="adicionar"):
+        if nome.strip() == "":
+            st.warning("⚠️ Digite o nome do cliente.")
+        elif valor <= 0:
+            st.warning("⚠️ Digite um valor maior que zero.")
+        else:
+            novo = {
+                "nome": nome.strip(),
+                "valor": valor,
+                "hora": datetime.now().strftime("%H:%M"),
+                "dia": datetime.now().strftime("%d/%m"),
+                "data_completa": date.today().isoformat()
+            }
+            st.session_state.cortes.append(novo)
+            salvar_dados(st.session_state.cortes)
+            st.rerun()
 
-mensagem = f"Olá, tenho uma dúvida: {duvida}"
-mensagem_codificada = urllib.parse.quote(mensagem)
+    st.divider()
+    st.markdown("### CORTES DA SEMANA")
 
-link_whatsapp = f"https://wa.me/5533998256653?text={mensagem_codificada}"
+    cortes_semana_reverso = list(reversed(cortes_semana))
 
-st.link_button("Tirar dúvida no WhatsApp 💬", link_whatsapp)
+    if not cortes_semana_reverso:
+        st.markdown('<div class="vazio">Nenhum corte registrado essa semana.<br>Adicione o primeiro acima ✂️</div>', unsafe_allow_html=True)
+    else:
+        for i, corte in enumerate(cortes_semana_reverso):
+            idx = len(cortes_semana) - i
+            st.markdown(f"""
+            <div class="corte-item">
+                <div style="display:flex; align-items:center;">
+                    <span class="corte-idx">#{idx:02d}</span>
+                    <div>
+                        <div class="corte-nome">{corte['nome']}</div>
+                        <div class="corte-hora">✂ {corte['dia']} às {corte['hora']}</div>
+                    </div>
+                </div>
+                <div class="corte-valor">R$ {fmt_valor(corte['valor'])}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="zerar">', unsafe_allow_html=True)
+        if st.button("🗑  Zerar semana atual", key="zerar"):
+            st.session_state.cortes = [c for c in st.session_state.cortes if not e_da_semana_atual(c)]
+            salvar_dados(st.session_state.cortes)
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# ====== ABA 2: HISTÓRICO ======
+with aba2:
+    st.markdown("### HISTÓRICO COMPLETO")
+
+    if not st.session_state.cortes:
+        st.markdown('<div class="vazio">Nenhum corte registrado ainda.</div>', unsafe_allow_html=True)
+    else:
+        # Agrupar por semana
+        semanas = {}
+        for corte in st.session_state.cortes:
+            try:
+                d = datetime.strptime(corte["data_completa"], "%Y-%m-%d").date()
+                seg = d - timedelta(days=d.weekday())
+                chave = seg.isoformat()
+                if chave not in semanas:
+                    semanas[chave] = []
+                semanas[chave].append(corte)
+            except:
+                pass
+
+        for chave in sorted(semanas.keys(), reverse=True):
+            grupo = semanas[chave]
+            seg = date.fromisoformat(chave)
+            dom = seg + timedelta(days=6)
+            total_sem = sum(c["valor"] for c in grupo)
+            label = "— SEMANA ATUAL" if seg == inicio_semana else ""
+
+            st.markdown(f"""
+            <div style="margin: 20px 0 8px; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-family:'Bebas Neue',sans-serif; font-size:16px; color:#666; letter-spacing:2px;">
+                    📅 {seg.strftime('%d/%m')} – {dom.strftime('%d/%m/%Y')} {label}
+                </span>
+                <span style="font-family:'Bebas Neue',sans-serif; font-size:20px; color:#c8a96e;">
+                    R$ {fmt_valor(total_sem)}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for corte in reversed(grupo):
+                st.markdown(f"""
+                <div class="corte-item">
+                    <div>
+                        <div class="corte-nome">{corte['nome']}</div>
+                        <div class="corte-hora">✂ {corte['dia']} às {corte['hora']}</div>
+                    </div>
+                    <div class="corte-valor">R$ {fmt_valor(corte['valor'])}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown('<div class="zerar">', unsafe_allow_html=True)
+        if st.button("🗑  Apagar TODO o histórico", key="apagar_tudo"):
+            st.session_state.cortes = []
+            salvar_dados([])
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
