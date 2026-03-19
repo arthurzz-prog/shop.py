@@ -297,7 +297,7 @@ cortes_semana = [c for c in st.session_state.cortes if e_da_semana_atual(c)]
 # ====== TOPO ======
 st.markdown("""
 <div class="topo">
-    <div class="topo-titulo">✂ MEUS CORTES</div>
+    <div class="topo-titulo">✂ GEIS CORTES</div>
     <div class="topo-sub">Controle semanal de atendimentos</div>
 </div>
 """, unsafe_allow_html=True)
